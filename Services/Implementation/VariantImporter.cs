@@ -3,7 +3,7 @@ using Plugin.Sample.Importer.Services.Interface;
 using Sitecore.Commerce.Core;
 using Sitecore.Commerce.Core.Commands;
 using Sitecore.Commerce.Plugin.Catalog;
-using System;       
+using System;
 using System.Threading.Tasks;
 
 namespace Plugin.Sample.Importer.Services.Implementation
@@ -65,22 +65,34 @@ namespace Plugin.Sample.Importer.Services.Implementation
         /// <param name="updateExisting">Flag to determine if an existing catalog should be updated</param>
         /// <returns>Commerce Command</returns>
         public async Task<CommerceCommand> ExecuteImport(CommerceContext context, CreateOrUpdateVariantParameter parameter, bool updateExisting)
-        {    
-            SellableItem sellableItem = await this._createSellableItemVariationCommand.Process(context, parameter.ProductName.ToEntityId<SellableItem>(), parameter.VariantName, parameter.Name, parameter.DisplayName);
+        {
+            // Try to create an item variant
+            SellableItem sellableItem = await this._createSellableItemVariationCommand.Process(
+                context,
+                parameter.ProductName.ToEntityId<SellableItem>(),
+                parameter.VariantName,
+                parameter.Name,
+                parameter.DisplayName);
 
-            if(sellableItem == null && !updateExisting)
+            // Check if the item already existed previously and if so if it should be updated
+            if (sellableItem == null && !updateExisting)
             {
                 return this._createSellableItemVariationCommand;
             }
 
-            if(sellableItem == null)
+            // If item already existed - get it 
+            if (sellableItem == null)
             {
-                // TODO Not implemented - cause EditSellableITemCommand is not working correctly right now
-                sellableItem = await this._getSellableItemCommand.Process(context, $"{parameter.CatalogName}|{parameter.ProductName}|", false);
-                var itemVariationComponent = sellableItem.GetVariation(parameter.VariantName);
-                itemVariationComponent.ListPrice = new Money(100);
-                CatalogContentArgument catalogContentArgument = await this._editSellableItemCommand.Process(context, sellableItem);
+                sellableItem = await this._getSellableItemCommand.Process(context, $"{parameter.CatalogName}|{parameter.ProductName}|", false);        
             }
+
+            // Get the Item Variants
+            var itemVariationComponent = sellableItem.GetVariation(parameter.VariantName);
+            // TODO Edit Item Variants
+
+            // Edit the Item
+            // TODO Sitecore Issue like in ProductImporter
+            CatalogContentArgument catalogContentArgument = await this._editSellableItemCommand.Process(context, sellableItem);
 
             return this._getSellableItemCommand;
         }

@@ -69,16 +69,13 @@ namespace Plugin.Sample.Importer.Services.Implementation
         /// Currently no dissasociation of categories is implemented
         /// </summary>
         /// <param name="context">context</param>
-        /// <param name="parameter">parameter</param>8
+        /// <param name="parameter">parameter</param>
         /// <param name="updateExisting">Flag to determine if an existing catalog should be updated</param>
         /// <returns>Commerce Command</returns>
         public async Task<CommerceCommand> ExecuteImport(CommerceContext context, CreateOrUpdateCategoryParameter parameter, bool updateExisting)
         {
-            bool createdFlag = true;
-            string catalogId = parameter.CatalogName.ToEntityId<Catalog>();
-            string categoryId = $"{CommerceEntity.IdPrefix<Category>()}{parameter.CatalogName}-{parameter.Name}";
-
             // Try to get existing Category
+            string categoryId = $"{CommerceEntity.IdPrefix<Category>()}{parameter.CatalogName}-{parameter.Name}";
             Category category = await this._getCategoryCommand.Process(context, categoryId);
 
             // If existing - Check if it should be updated
@@ -88,6 +85,7 @@ namespace Plugin.Sample.Importer.Services.Implementation
             }
 
             // If existing - Get Current Category
+            bool createdFlag = true;
             if (category == null)
             {
                 createdFlag = false;
@@ -115,6 +113,7 @@ namespace Plugin.Sample.Importer.Services.Implementation
             IEnumerable<string> parentCategoryList = category.ParentCategoryList?.Split('|').AsEnumerable() ?? new List<string>();
 
             // Associate category to parent
+            string catalogId = parameter.CatalogName.ToEntityId<Catalog>();
             foreach (string parentName in parameter.ParentNames)
             {
                 string entityIdentifier = parentName.Equals(parameter.CatalogName)

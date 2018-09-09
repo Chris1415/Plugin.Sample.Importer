@@ -113,15 +113,8 @@ namespace Plugin.Sample.Importer.Services.Implementation
         /// <param name="parameter">parameter</param>
         /// <param name="updateExisting">Flag to determine if an existing catalog should be updated</param>
         /// <returns>Commerce Command</returns>
-        public async Task<CommerceCommand> ExecuteImport(
-            CommerceContext context,
-            CreateOrUpdateCatalogParameter parameter,
-            bool updateExisting = false)
+        public async Task<CommerceCommand> ExecuteImport(CommerceContext context, CreateOrUpdateCatalogParameter parameter,  bool updateExisting = false)
         {
-            CommerceEntity priceBookEntity = null;
-            CommerceEntity promotionBookEntity = null;
-            CommerceEntity inventorySetEntity = null;
-
             // Try to create a new catalog
             Catalog catalog = await this._createCatalogCommand.Process(context, parameter.Name, parameter.DisplayName);
 
@@ -138,6 +131,7 @@ namespace Plugin.Sample.Importer.Services.Implementation
             }
 
             // Association of Price Book
+            CommerceEntity priceBookEntity = null;
             if (!string.IsNullOrEmpty(parameter.PriceBookName))
             {
                 if (!string.IsNullOrEmpty(catalog.PriceBookName) && !catalog.PriceBookName.Equals(parameter.PriceBookName))
@@ -153,6 +147,7 @@ namespace Plugin.Sample.Importer.Services.Implementation
             }
 
             // Association of Promotion Book
+            CommerceEntity promotionBookEntity = null;
             if (!string.IsNullOrEmpty(parameter.PromotionBookName))
             {
                 if (string.IsNullOrEmpty(catalog.PromotionBookName) && !catalog.PromotionBookName.Equals(parameter.PromotionBookName))
@@ -168,6 +163,7 @@ namespace Plugin.Sample.Importer.Services.Implementation
             }
 
             // Association of Default Inventory Set Book
+            CommerceEntity inventorySetEntity = null;
             if (!string.IsNullOrEmpty(parameter.DefaultInventorySetName))
             {
                 if (string.IsNullOrEmpty(catalog.DefaultInventorySetName) && !catalog.DefaultInventorySetName.Equals(parameter.DefaultInventorySetName))

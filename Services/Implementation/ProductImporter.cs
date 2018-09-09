@@ -76,10 +76,6 @@ namespace Plugin.Sample.Importer.Services.Implementation
         /// <returns>Commerce Command</returns>
         public async Task<CommerceCommand> ExecuteImport(CommerceContext context, CreateOrUpdateProductParameter parameter, bool updateExisting)
         {
-            bool createdFlag = true;
-
-            // TODO There is an error, that if the first command fails with some error any further command will not work properly 
-            // Sitecore Support Ticket ID 515199
             SellableItem sellableItem = await this._createSellableItemCommand.Process(
                context,
                parameter.ProductId,
@@ -91,39 +87,26 @@ namespace Plugin.Sample.Importer.Services.Implementation
                parameter.TypeOfGood,
                parameter.Tags.ToArray());
 
+            // If existing - Check if it should be updated
             if (sellableItem == null && !updateExisting)
             {
                 return this._createSellableItemCommand;
             }
 
+            // If existing - Get Current SellableItem 
+            bool createdFlag = true;
             if (sellableItem == null)
             {
                 createdFlag = false;
                 // Get SellableItem 
-                sellableItem = await this._getSellableItemCommand.Process(context, $"{parameter.CatalogName}|{parameter.ProductId}|", false);
+                sellableItem = await this._getSellableItemCommand.Process(context, $"{parameter.CatalogName}|{parameter.ProductId}", false);
             }
 
+            // Edit SellableItem only if it is not created within that call
             if (!createdFlag)
             {
-                // Todo Try to edit custom Properties
-                var composerTemplateViewsComponents = sellableItem.GetComponent<ComposerTemplateViewsComponent>().Views;
-                if (!composerTemplateViewsComponents.Any())
-                {
-
-                }
-
-                foreach (var composerTemplateViewsComponent in composerTemplateViewsComponents)
-                {
-                    var composerView = sellableItem.GetComposerView(composerTemplateViewsComponent.Key);
-
-                    // Extract the needed tax value from custom view property
-                    ViewProperty taxProperty = composerView?.Properties
-                        .FirstOrDefault(element => element.Name.Equals("Taxes"));
-
-                    taxProperty.Value = "0.19";
-                }
-
-                // Edit SellableItem only if it is not created within that call
+                // Todo There is currently an error that if editsellableitemcommand is executed SQL server will throw a PK exception when it tries to ADD the current sellableitem again to DB
+                // Sitecore Support Ticket ID 515689
                 CatalogContentArgument catalogContentArgument = await this._editSellableItemCommand.Process(context, parameter.UpdateSellableItem(sellableItem));
             }
 
