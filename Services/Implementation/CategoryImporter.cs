@@ -3,6 +3,7 @@ using Plugin.Sample.Importer.Services.Interface;
 using Sitecore.Commerce.Core;
 using Sitecore.Commerce.Core.Commands;
 using Sitecore.Commerce.Plugin.Catalog;
+using Sitecore.Commerce.Plugin.ManagedLists;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -43,6 +44,16 @@ namespace Plugin.Sample.Importer.Services.Implementation
         private readonly DeleteRelationshipCommand _deleteRelationshipCommand;
 
         /// <summary>
+        /// Find Entitities in List Command
+        /// </summary>
+        private readonly FindEntitiesInListCommand _findEntitiesInListCommand;
+
+        /// <summary>
+        /// Associated Item Retrieval Service
+        /// </summary>
+        private readonly IAssociatedItemRetrievalService _associatedItemRetrievalService;
+
+        /// <summary>
         /// c'tor
         /// </summary>
         /// <param name="createCategoryCommand">createCategoryCommand</param>
@@ -50,18 +61,24 @@ namespace Plugin.Sample.Importer.Services.Implementation
         /// <param name="getCategoryCommand">Get Category Command</param>
         /// <param name="editCategoryCommand">Edit Category Command</param>
         /// <param name="deleteRelationshipCommand">Delete Relationship Command</param>
+        /// <param name="findEntitiesInListCommand">Find entities in List Command</param>
+        /// <param name="associatedItemRetrievalService">associatedItemRetrievalService</param>
         public CategoryImporter(
             CreateCategoryCommand createCategoryCommand,
             AssociateCategoryToParentCommand associateCategoryToParentCommand,
             GetCategoryCommand getCategoryCommand,
             EditCategoryCommand editCategoryCommand,
-            DeleteRelationshipCommand deleteRelationshipCommand)
+            DeleteRelationshipCommand deleteRelationshipCommand,
+            FindEntitiesInListCommand findEntitiesInListCommand,
+            IAssociatedItemRetrievalService associatedItemRetrievalService)
         {
             _createCategoryCommand = createCategoryCommand;
             _associateCategoryToParentCommand = associateCategoryToParentCommand;
             _getCategoryCommand = getCategoryCommand;
             _editCategoryCommand = editCategoryCommand;
             _deleteRelationshipCommand = deleteRelationshipCommand;
+            _findEntitiesInListCommand = findEntitiesInListCommand;
+            _associatedItemRetrievalService = associatedItemRetrievalService;
         }
 
         /// <summary>
@@ -98,19 +115,42 @@ namespace Plugin.Sample.Importer.Services.Implementation
                 CatalogContentArgument editCategoryResult = await this._editCategoryCommand.Process(context, category, parameter.DisplayName, parameter.Description);
             }
 
-            // TODO: Implement Dissasociation of categories when they are not existing anymore
-            // RelationshiptTypes - "CatalogToCategory","CatalogToSellableItem","CategoryToCategory","CategoryToSellableItem"
-            // SourceName = Parent
-            // TargetName = Current Item
+            // Workaround to get all Parent Entities for the current Entity
+            List<string> parentEntities = await this._associatedItemRetrievalService.GetAllParentEnitites(context, category.Name, parameter.CatalogName);
 
-            // Todo Currently blocked by Sitecore Ticket ID 515690
-            string targetName = category.Id;
-            string sourceName = $"{parameter.CatalogName}-Pkw4".ToEntityId<Category>();
-            RelationshipArgument relationshipArgument = await this._deleteRelationshipCommand.Process(context, sourceName, targetName, "CategoryToCategory");
+            // Check with the given paremter.ParentNames and the existing Parents, which ones have to be deleted
+            foreach (string parentEntity in parentEntities)
+            {
+                // If both lists containt the entity, it should not be deleted
+                if (parameter.ParentNames.Contains(parentEntity))
+                {
+                    continue;
+                }
+                // Otherwise disassociate the parent
+                // TargetName = Current Item
+                string targetName;
+                // SourceName = Parent
+                string sourceName;
+                // RelationshiptTypes - "CatalogToCategory","CatalogToSellableItem","CategoryToCategory","CategoryToSellableItem"
+                string relationshipType;
 
-            // TODO find a way to get the entities from these IDs
-            IEnumerable<string> parentCatalogList = category.ParentCatalogList?.Split('|').AsEnumerable() ?? new List<string>();
-            IEnumerable<string> parentCategoryList = category.ParentCategoryList?.Split('|').AsEnumerable() ?? new List<string>();
+                if (parentEntity.Equals(parameter.CatalogName))
+                {
+                    // Disassociate Catalog To Category
+                    targetName = category.Id;
+                    sourceName = $"{parentEntity}".ToEntityId<Catalog>();
+                    relationshipType = "CatalogToCategory";
+                }
+                else
+                {
+                    // Disassociate Category To Category
+                    targetName = category.Id;
+                    sourceName = $"{parameter.CatalogName}-{parentEntity}".ToEntityId<Category>();
+                    relationshipType = "CategoryToCategory";
+                }
+
+                RelationshipArgument relationshipArgument = await this._deleteRelationshipCommand.Process(context, sourceName, targetName, relationshipType);
+            }
 
             // Associate category to parent
             string catalogId = parameter.CatalogName.ToEntityId<Catalog>();

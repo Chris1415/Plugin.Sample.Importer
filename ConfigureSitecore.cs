@@ -33,6 +33,7 @@ namespace Sitecore.Commerce.Plugin.Sample
             services.AddTransient<ICategoryImporter, CategoryImporter>();
             services.AddTransient<IProductImporter, ProductImporter>();
             services.AddTransient<IVariantImporter, VariantImporter>();
+            services.AddTransient<IAssociatedItemRetrievalService, AssociatedItemRetrievalService>();
 
             services.Sitecore().Pipelines(config => config
                .ConfigurePipeline<IConfigureOpsServiceApiPipeline>(c => { c.Add<ConfigureOpsServiceApiBlock>(); }));
