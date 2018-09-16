@@ -126,7 +126,7 @@ namespace Plugin.Sample.Importer.Services.Implementation
                 {
                     continue;
                 }
-                // Otherwise disassociate the parent
+
                 // TargetName = Current Item
                 string targetName;
                 // SourceName = Parent
@@ -134,6 +134,7 @@ namespace Plugin.Sample.Importer.Services.Implementation
                 // RelationshiptTypes - "CatalogToCategory","CatalogToSellableItem","CategoryToCategory","CategoryToSellableItem"
                 string relationshipType;
 
+                // Check if the entity is a catalog or category
                 if (parentEntity.Equals(parameter.CatalogName))
                 {
                     // Disassociate Catalog To Category

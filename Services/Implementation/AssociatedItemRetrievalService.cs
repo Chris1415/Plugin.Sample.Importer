@@ -34,6 +34,10 @@ namespace Plugin.Sample.Importer.Services.Implementation
         /// </summary>
         private readonly FindEntitiesInListCommand _findEntitiesInListCommand;
 
+        /// <summary>
+        /// c'tpr
+        /// </summary>
+        /// <param name="findEntitiesInListCommand">findEntitiesInListCommand</param>
         public AssociatedItemRetrievalService(FindEntitiesInListCommand findEntitiesInListCommand)
         {
             _findEntitiesInListCommand = findEntitiesInListCommand;
