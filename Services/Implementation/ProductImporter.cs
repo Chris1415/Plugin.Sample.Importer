@@ -127,37 +127,40 @@ namespace Plugin.Sample.Importer.Services.Implementation
             // Extract the Composer Generated View
             var composerView = sellableItemEntityView.ChildViews.Where(x => x.Name == "Custom Plugins View").FirstOrDefault() as EntityView;
 
-            // Call an Edit View of the Composer Generated View
-            EntityView composerViewForEdit = await _getEntityViewCommand.Process(context, sellableItem.Id, "EditView", "EditView", composerView.ItemId);
-
-            // Get the Property we want to change - This time the Taxes property for demonstration reason
-            // At this point we could also iterate through a various number of properties based on input parameters
-            ViewProperty propertyToChange = composerViewForEdit.Properties.FirstOrDefault(element => element.Name.Equals("Taxes"));
-            if (propertyToChange != null)
+            if(composerView != null)
             {
-                // Special Case - Out Taxes property has an availableSelectionPolicy we want to obtain
-                // Currently only values 0.07 and 0.19 are allowed - Selection Option Contraint from Composer
-                AvailableSelectionsPolicy availableSelectionPolicy = propertyToChange.Policies.FirstOrDefault(element => element is AvailableSelectionsPolicy) as AvailableSelectionsPolicy;
-                string newValue = "0.19";
+                // Call an Edit View of the Composer Generated View
+                EntityView composerViewForEdit = await _getEntityViewCommand.Process(context, sellableItem.Id, "EditView", "EditView", composerView.ItemId);
 
-                // Check if our new value can be found within all selections
-                Selection isAvailable = availableSelectionPolicy.List.FirstOrDefault(element => element.Name.Equals(newValue));
+                // Get the Property we want to change - This time the Taxes property for demonstration reason
+                // At this point we could also iterate through a various number of properties based on input parameters
+                ViewProperty propertyToChange = composerViewForEdit.Properties.FirstOrDefault(element => element.Name.Equals("Taxes"));
+                if (propertyToChange != null)
+                {
+                    // Special Case - Out Taxes property has an availableSelectionPolicy we want to obtain
+                    // Currently only values 0.07 and 0.19 are allowed - Selection Option Contraint from Composer
+                    AvailableSelectionsPolicy availableSelectionPolicy = propertyToChange.Policies.FirstOrDefault(element => element is AvailableSelectionsPolicy) as AvailableSelectionsPolicy;
+                    string newValue = "0.19";
 
-                if (isAvailable != null)
-                {
-                    // If so - change the value
-                    propertyToChange.Value = newValue;
-                    propertyToChange.RawValue = newValue;
+                    // Check if our new value can be found within all selections
+                    Selection isAvailable = availableSelectionPolicy.List.FirstOrDefault(element => element.Name.Equals(newValue));
+
+                    if (isAvailable != null)
+                    {
+                        // If so - change the value
+                        propertyToChange.Value = newValue;
+                        propertyToChange.RawValue = newValue;
+                    }
+                    else
+                    {
+                        // If not - Obtain the constraint and dont change the value
+                        context.Logger.LogDebug(string.Format("New Value {0} is not allowed for property {1}", newValue, propertyToChange.Name));
+                    }
                 }
-                else
-                {
-                    // If not - Obtain the constraint and dont change the value
-                    context.Logger.LogDebug(string.Format("New Value {0} is not allowed for property {1}", newValue, propertyToChange.Name));
-                }
+
+                // In the end update the changed view
+                var result = await _doActionCommand.Process(context, composerViewForEdit);
             }
-
-            // In the end update the changed view
-            var result = await _doActionCommand.Process(context, composerViewForEdit);
 
             // End Edit Composer generated Propertis
             //*********************************************
